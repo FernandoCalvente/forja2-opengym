@@ -19,6 +19,12 @@ const RP_NAME = process.env.RP_NAME || 'openGym';
 // code the admin generates. Both default off so a fresh self-hosted instance stays open.
 const ADMIN_UIDS = (process.env.ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
 const INVITE_ONLY = /^(1|true|yes|on)$/i.test(process.env.INVITE_ONLY || '');
+// Shared secret for the 3 /internal/* routes used by the Forja gamification service
+// (gamer-api) to bridge sessions, resolve display names and send push through this
+// server's own VAPID setup instead of duplicating it. Never proxied by nginx, so in
+// practice only reachable from other containers on the same docker network — the
+// secret is defense-in-depth on top of that.
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || '';
 // 90 days keeps someone who trains a few times a week permanently signed in without a stolen
 // cookie staying good for a year. Overridable because a family instance and one on the open
 // internet don't want the same number. Only affects cookies minted from now on — the expiry is
@@ -452,6 +458,34 @@ const routes = {
         updatedAt: Date.now()
       });
     } else presence.delete(user.id);
+    json(res, 200, { ok: true });
+  },
+
+  /* ---------- internal (Forja gamification bridge — not proxied by nginx) ---------- */
+  'GET /internal/whoami': async (req, res) => {
+    if (!INTERNAL_SECRET || req.headers['x-internal-secret'] !== INTERNAL_SECRET) return json(res, 403, { error: 'forbidden' });
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { id: user.id, name: user.name, admin: isAdmin(user) });
+  },
+
+  'GET /internal/users': async (req, res) => {
+    if (!INTERNAL_SECRET || req.headers['x-internal-secret'] !== INTERNAL_SECRET) return json(res, 403, { error: 'forbidden' });
+    const url = new URL(req.url, 'http://x');
+    const all = url.searchParams.get('all') === 'true';
+    const ids = (url.searchParams.get('ids') || '').split(',').filter(Boolean);
+    const list = all ? db.users : db.users.filter(u => ids.includes(u.id));
+    json(res, 200, { users: list.map(u => ({ id: u.id, name: u.name })) });
+  },
+
+  'POST /internal/push': async (req, res) => {
+    if (!INTERNAL_SECRET || req.headers['x-internal-secret'] !== INTERNAL_SECRET) return json(res, 403, { error: 'forbidden' });
+    const body = await readBody(req);
+    if (!body.title) return json(res, 400, { error: 'title required' });
+    const payload = { title: body.title, body: body.body || '', tag: body.tag };
+    if (body.all) await Promise.all(db.users.map(u => sendPush(u.id, payload).catch(() => {})));
+    else if (body.userId) await sendPush(body.userId, payload);
+    else return json(res, 400, { error: 'userId or all required' });
     json(res, 200, { ok: true });
   },
 

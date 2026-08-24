@@ -1,0 +1,15 @@
+data/
+data.upstream-example-backup/
+frontend/src.bak-preforja-rename/
+frontend/public/icons.upstream-backup/
+frontend/src/instr.other-langs-backup/
+frontend/src/locales.other-langs-backup/
+.env
+.env.local
+.env.prod
+.env.*
+*.bak
+*.bak.*
+node_modules/
+media/img/
+media/gif/

@@ -1,7 +1,7 @@
 {
-  "name": "openGym",
-  "short_name": "openGym",
-  "description": "Personal gym & body weight tracker",
+  "name": "Forja",
+  "short_name": "Forja",
+  "description": "Entrenamiento y peso corporal, a tu manera",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

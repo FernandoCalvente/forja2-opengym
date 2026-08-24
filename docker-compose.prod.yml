@@ -1,0 +1,37 @@
+# PRODUCTION deploy — same domain as the current live Forja (forja.conectaplusjerez.es).
+#
+# DO NOT `docker compose -f docker-compose.prod.yml up` yet. The router name below is
+# deliberately "forja2", NOT "forja" — the currently-running /datos/forja stack already has
+# a Traefik router literally named "forja" claiming Host(`forja.conectaplusjerez.es`). Two
+# routers claiming the same host is undefined behavior in Traefik (unpredictable which
+# backend answers, possibly flapping between the old and new app for real users mid-session).
+#
+# The actual cutover is a coordinated, two-step swap, not something to run blind:
+#   1. Take down the old Forja's web router (e.g. `docker compose -f /datos/forja/docker-
+#      compose.yml stop frontend backend` — leave `db` up until data is confirmed migrated).
+#   2. THEN `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` here.
+# Do this together, not unattended — real users currently point at the old app.
+#
+# Also: RP_ID here MUST be exactly `forja.conectaplusjerez.es` (see .env.prod) for passkeys
+# to validate. Anyone testing passkeys against localhost during dev will need to re-register
+# once this goes live — passkeys are bound to the RP_ID they were created under.
+
+services:
+  web:
+    ports: !override []
+    networks:
+      - default
+      - traefik_public
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.forja2.rule=Host(`${FRONTEND_DOMAIN}`)
+      - traefik.http.routers.forja2.entrypoints=websecure
+      - traefik.http.routers.forja2.tls.certresolver=myresolver
+      - traefik.http.services.forja2.loadbalancer.server.port=80
+
+networks:
+  default:
+  traefik_public:
+    external: true
+    name: web
