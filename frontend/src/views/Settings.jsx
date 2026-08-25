@@ -189,8 +189,8 @@ export default function Settings() {
 
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       Forja · {t('free & open source (AGPL v3)')} · basado en <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">openGym</a><br />
-      {/* TODO(AGPL §13): apuntar a tu repo privado con el código fuente modificado en cuanto exista */}
-      <a href="https://github.com/PENDIENTE-crear-repo-forja2" target="_blank" rel="noopener">código fuente de Forja</a> · datos de ejercicios: hasaneyldrm/exercises-dataset (CC)
+      <a href="https://github.com/FernandoCalvente/forja2-opengym" target="_blank" rel="noopener">código fuente</a> ·{' '}
+      <a href="https://github.com/FernandoCalvente/forja2-gamer-api" target="_blank" rel="noopener">gamificación</a> · datos de ejercicios: hasaneyldrm/exercises-dataset (CC)
     </div>
   </div>
 }
